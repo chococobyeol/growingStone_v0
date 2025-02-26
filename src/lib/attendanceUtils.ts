@@ -11,7 +11,9 @@ export async function checkAttendance(): Promise<{ success: boolean; message: st
     }
     const userId = sessionData.session.user.id;
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD" 형식
+    const kstDate = new Date(today.getTime());
+    kstDate.setHours(kstDate.getHours() + 9); // UTC+9 적용
+    const todayStr = kstDate.toISOString().split('T')[0];
 
     // 사용자 프로필에서 마지막 출석 날짜와 현재 잔액 가져오기
     const { data: profile, error: profileError } = await supabase
