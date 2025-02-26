@@ -323,6 +323,9 @@
       }
     }, 1000);
 
+    // 자정 체크 타이머 설정 - setInterval 밖으로 이동
+    setupMidnightCheck();
+
     // Supabase realtime 채널 구독 (현재 돌 업데이트)
     const stoneId = get(currentStone).id;
     stonesSubscription = supabase
@@ -356,6 +359,37 @@
       supabase.removeChannel(stonesSubscription);
     };
   });
+
+  // 자정에 자동으로 출석 체크를 수행하는 함수 - setInterval 외부로 이동
+  function setupMidnightCheck() {
+    // 한국 시간 기준 다음 자정까지 남은 시간 계산
+    const now = new Date();
+    const kstNow = new Date(now.getTime());
+    kstNow.setHours(kstNow.getHours() + 9); // UTC+9
+    const tomorrow = new Date(kstNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    // 다음 자정까지 남은 밀리초
+    const timeUntilMidnight = tomorrow.getTime() - kstNow.getTime();
+    
+    console.log(`다음 출석 체크까지: ${Math.floor(timeUntilMidnight / 1000 / 60)}분`);
+    
+    setTimeout(async () => {
+      console.log('자정 출석 체크 실행');
+      const attendanceRes = await checkAttendance();
+      if (attendanceRes.message) {
+        attendanceMsg = get(t)(attendanceRes.message);
+        setTimeout(() => {
+          attendanceMsg = "";
+        }, 3000);
+        await loadBalance();
+      }
+      
+      // 다음 자정을 위한 체크 설정
+      setupMidnightCheck();
+    }, timeUntilMidnight);
+  }
 
   async function logoutHandler() {
     const sessionResponse = await supabase.auth.getSession();
